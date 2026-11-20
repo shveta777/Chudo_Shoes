@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 using Chudo_obuv.ScaffoldedModels;
 using Microsoft.EntityFrameworkCore;
+using Chudo_obuv.Statics;
 
 namespace Chudo_obuv
 {
@@ -20,8 +21,16 @@ namespace Chudo_obuv
         {
             UserNameText.Text =
                 $"{user.LastName} {user.FirstName} {user.Patronymic}";
+            PriceSort.SelectedIndex = 0;
+            PriceSort.Visibility = Visibility.Visible;
         }
 
+        private void Exit_Click(object sender, RoutedEventArgs e)
+        {
+            CurrentSession.CurrentUser = null;
+            new MainWindow().Show();
+            Close();
+        }
         private void LoadShoes()
         {
             using var db = new ScaffoldedChudoObuvContext();
@@ -42,7 +51,7 @@ namespace Chudo_obuv
                 .Include(p => p.StockItems)
                 .ToList();
 
-            ShoesList.ItemsSource = products.Select(p =>
+            var cards = products.Select(p =>
             {
                 int count = p.StockItems.Sum(x => x.AvailableQuantity);
 
@@ -71,10 +80,23 @@ namespace Chudo_obuv
                     CategoryText = "Категория: " + p.Subcategory.Category.CategoryName,
                     QuantityText = "Количество: " + quantityText,
                     CompositionText = "Состав: " + p.Composition,
+                    Price = price,
                     PriceText = price.ToString("N2") + " ₽",
                     CardBackground = background
                 };
             }).ToList();
+
+            ShoesList.ItemsSource = cards;
+
+            PriceSort.SelectionChanged += (sender, e) =>
+            {
+                if (PriceSort.SelectedIndex == 1)
+                    ShoesList.ItemsSource = cards.OrderBy(card => card.Price).ToList();
+                else if (PriceSort.SelectedIndex == 2)
+                    ShoesList.ItemsSource = cards.OrderByDescending(card => card.Price).ToList();
+                else
+                    ShoesList.ItemsSource = cards;
+            };
         }
 
         private void Image_ImageFailed(object sender, ExceptionRoutedEventArgs e)
@@ -85,5 +107,6 @@ namespace Chudo_obuv
                     new Uri("/res/picture.png", UriKind.Relative));
             }
         }
+
     }
 }
