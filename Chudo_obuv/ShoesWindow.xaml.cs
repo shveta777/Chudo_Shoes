@@ -21,8 +21,9 @@ namespace Chudo_obuv
         {
             UserNameText.Text =
                 $"{user.LastName} {user.FirstName} {user.Patronymic}";
+            CategoryFilter.SelectedIndex = 0;
             PriceSort.SelectedIndex = 0;
-            PriceSort.Visibility = Visibility.Visible;
+            CatalogControls.Visibility = Visibility.Visible;
         }
 
         private void Exit_Click(object sender, RoutedEventArgs e)
@@ -34,7 +35,9 @@ namespace Chudo_obuv
         private void LoadShoes()
         {
             using var db = new ScaffoldedChudoObuvContext();
-
+            var categories = db.Categories.OrderBy(c => c.CategoryName).ToList();
+            categories.Insert(0, new Category { CategoryName = "Все категории" });
+            CategoryFilter.ItemsSource = categories;
             var thisMonth = new DateOnly(
                 DateTime.Today.Year, DateTime.Today.Month, 1);
             var lastMonth = thisMonth.AddMonths(-1);
@@ -77,6 +80,7 @@ namespace Chudo_obuv
                 {
                     Image = "/res/" + imageFile,
                     Title = p.Manufacturer.ManufacturerName + " | " + p.ProductName,
+                    CategoryId = p.Subcategory.CategoryId,
                     CategoryText = "Категория: " + p.Subcategory.Category.CategoryName,
                     QuantityText = "Количество: " + quantityText,
                     CompositionText = "Состав: " + p.Composition,
@@ -88,15 +92,31 @@ namespace Chudo_obuv
 
             ShoesList.ItemsSource = cards;
 
-            PriceSort.SelectionChanged += (sender, e) =>
+            void UpdateCards()
             {
+                var result = cards.AsEnumerable();
+
+                if (CategoryFilter.SelectedIndex > 0 &&
+                    CategoryFilter.SelectedItem is Category category)
+                {
+                    result = result.Where(card => card.CategoryId == category.CategoryId);
+                }
+
                 if (PriceSort.SelectedIndex == 1)
-                    ShoesList.ItemsSource = cards.OrderBy(card => card.Price).ToList();
+                {
+                    result = result.OrderBy(card => card.Price);
+                }
                 else if (PriceSort.SelectedIndex == 2)
-                    ShoesList.ItemsSource = cards.OrderByDescending(card => card.Price).ToList();
-                else
-                    ShoesList.ItemsSource = cards;
-            };
+                {
+                    result = result.OrderByDescending(card => card.Price);
+                }
+
+                ShoesList.ItemsSource = result.ToList();
+            }
+
+            CategoryFilter.SelectionChanged += (sender, e) => UpdateCards();
+            PriceSort.SelectionChanged += (sender, e) => UpdateCards();
+        
         }
 
         private void Image_ImageFailed(object sender, ExceptionRoutedEventArgs e)
