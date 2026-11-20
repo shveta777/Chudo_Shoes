@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using Chudo_obuv.ScaffoldedModels;
 using Microsoft.EntityFrameworkCore;
@@ -11,10 +13,16 @@ namespace Chudo_obuv
 {
     public partial class ShoesWindow : Window
     {
+        private readonly List<CartItem> _cart = new List<CartItem>();
+        private Action _updateCards;
+
         public ShoesWindow()
         {
             InitializeComponent();
             LoadShoes();
+            CategoryFilter.SelectionChanged += (sender, e) => _updateCards();
+            PriceSort.SelectionChanged += (sender, e) => _updateCards();
+            ProductSearch.TextChanged += (sender, e) => _updateCards();
         }
 
         public ShoesWindow(User user) : this()
@@ -24,6 +32,7 @@ namespace Chudo_obuv
             CategoryFilter.SelectedIndex = 0;
             PriceSort.SelectedIndex = 0;
             CatalogControls.Visibility = Visibility.Visible;
+            CartButton.Visibility = Visibility.Visible;
         }
 
         private void Exit_Click(object sender, RoutedEventArgs e)
@@ -32,21 +41,55 @@ namespace Chudo_obuv
             new MainWindow().Show();
             Close();
         }
+
+        private void ProductCard_Click(object sender, MouseButtonEventArgs e)
+        {
+            if (CurrentSession.CurrentUser == null ||
+                sender is not FrameworkElement card || card.Tag is not int productId)
+                return;
+
+            try
+            {
+                new ProductWindow(productId, _cart) { Owner = this }.ShowDialog();
+            }
+            catch (Exception)
+            {
+                MessageBox.Show(this, "Не удалось открыть товар.", "Каталог обуви");
+            }
+        }
+
+        private void Cart_Click(object sender, RoutedEventArgs e)
+        {
+            var user = CurrentSession.CurrentUser;
+            if (user == null)
+                return;
+
+            var cartWindow = new CartWindow(user.UserId, _cart) { Owner = this };
+            if (cartWindow.ShowDialog() == true)
+            {
+                try
+                {
+                    LoadShoes();
+                }
+                catch (Exception)
+                {
+                    MessageBox.Show(this, "Заказ сохранён. Откройте каталог заново, чтобы обновить остатки.",
+                        "Каталог обуви");
+                }
+            }
+        }
+
         private void LoadShoes()
         {
             using var db = new ScaffoldedChudoObuvContext();
-            var categories = db.Categories.OrderBy(c => c.CategoryName).ToList();
-            categories.Insert(0, new Category { CategoryName = "Все категории" });
-            CategoryFilter.ItemsSource = categories;
-            var thisMonth = new DateOnly(
-                DateTime.Today.Year, DateTime.Today.Month, 1);
-            var lastMonth = thisMonth.AddMonths(-1);
+            if (CategoryFilter.ItemsSource == null)
+            {
+                var categories = db.Categories.OrderBy(c => c.CategoryName).ToList();
+                categories.Insert(0, new Category { CategoryName = "Все категории" });
+                CategoryFilter.ItemsSource = categories;
+            }
 
-            var orderedIds = db.OrderItems
-                .Where(x => x.Order.OrderDate >= lastMonth &&
-                            x.Order.OrderDate < thisMonth)
-                .Select(x => x.ProductId)
-                .ToList();
+            var orderedIds = CatalogPricing.OrderedLastMonth(db).ToHashSet();
 
             var products = db.Products
                 .Include(p => p.Manufacturer)
@@ -60,7 +103,7 @@ namespace Chudo_obuv
 
                 decimal price = p.Price;
                 if (!orderedIds.Contains(p.ProductId))
-                    price = p.Price * 0.75m;
+                    price = p.Price * CatalogPricing.DiscountMultiplier;
 
                 string imageFile = p.ImageFile;
                 if (string.IsNullOrWhiteSpace(imageFile))
@@ -78,6 +121,7 @@ namespace Chudo_obuv
 
                 return new
                 {
+                    ProductId = p.ProductId,
                     Image = "/res/" + imageFile,
                     Title = p.Manufacturer.ManufacturerName + " | " + p.ProductName,
                     CategoryId = p.Subcategory.CategoryId,
@@ -86,15 +130,21 @@ namespace Chudo_obuv
                     CompositionText = "Состав: " + p.Composition,
                     Price = price,
                     PriceText = price.ToString("N2") + " ₽",
-                    CardBackground = background
+                    CardBackground = background,
+                    ProductName = p.ProductName,
+                    Description = p.Description,
                 };
             }).ToList();
-
-            ShoesList.ItemsSource = cards;
 
             void UpdateCards()
             {
                 var result = cards.AsEnumerable();
+
+                string searchText = ProductSearch.Text.Trim();
+
+                result = result.Where(card =>
+                    card.ProductName.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                    (card.Description ?? "").Contains(searchText, StringComparison.OrdinalIgnoreCase));
 
                 if (CategoryFilter.SelectedIndex > 0 &&
                     CategoryFilter.SelectedItem is Category category)
@@ -114,9 +164,8 @@ namespace Chudo_obuv
                 ShoesList.ItemsSource = result.ToList();
             }
 
-            CategoryFilter.SelectionChanged += (sender, e) => UpdateCards();
-            PriceSort.SelectionChanged += (sender, e) => UpdateCards();
-        
+            _updateCards = UpdateCards;
+            _updateCards();
         }
 
         private void Image_ImageFailed(object sender, ExceptionRoutedEventArgs e)
