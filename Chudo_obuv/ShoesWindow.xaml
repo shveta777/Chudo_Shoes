@@ -2,64 +2,55 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Чудо Обувь - каталог обуви"
-        Height="800" Width="1200"
+        Height="800" Width="1200" MinWidth="720"
         WindowStartupLocation="CenterScreen">
     
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="72"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Border Background="#D2F6E7">
+        <Border Background="#D2F6E7" Padding="24,8" MinHeight="72">
             <Grid>
-                <Image Source="/res/Чудо Обувь.png"
-                       Width="56" Height="56"
-                       HorizontalAlignment="Left"
-                       Margin="16,0,0,0"/>
-
-                <TextBlock Text="Каталог обуви"
-                           FontSize="28"
-                           FontWeight="Bold"
-                           VerticalAlignment="Center"
-                           Margin="88,0,0,0"/>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Image Source="/res/Чудо Обувь.png" Width="56" Height="56"/>
+                    <TextBlock Text="Каталог обуви" FontSize="28" FontWeight="Bold"
+                               VerticalAlignment="Center" Margin="16,0,0,0"/>
+                </StackPanel>
 
                 <TextBlock x:Name="UserNameText"
+                           Grid.Column="1"
                            Text="Гость"
                            FontSize="18"
-                           HorizontalAlignment="Right"
                            VerticalAlignment="Center"
-                           Margin="0,0,24,0"/>
-                <StackPanel x:Name="CatalogControls"
-            Orientation="Horizontal"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Center"
-            Visibility="Collapsed">
-                    <TextBlock Text="Поиск:"
-                               VerticalAlignment="Center"   
-                               Margin="0,0,6,0"/>
-                    <TextBox x:Name="ProductSearch"
-                             Width="150"
-                             Margin="0,0,12,0"
-                             ToolTip="Поиск по названию и описанию"/>
-                    
-                    <ComboBox x:Name="CategoryFilter"
-              Width="170"
-              Margin="0,0,12,0"
-              DisplayMemberPath="CategoryName"/>
-
-                    <ComboBox x:Name="PriceSort" Width="170">
-                        <ComboBoxItem Content="Без сортировки"/>
-                        <ComboBoxItem Content="По возрастанию"/>
-                        <ComboBoxItem Content="По убыванию"/>
-                    </ComboBox>
-                </StackPanel>
+                           TextAlignment="Right" TextWrapping="Wrap"
+                           Margin="24,0,0,0"/>
             </Grid>
         </Border>
 
-        <ScrollViewer Grid.Row="1"
+        <WrapPanel x:Name="CatalogControls" Grid.Row="1" Margin="24,12,24,0"
+                   Visibility="Collapsed">
+            <TextBlock Text="Поиск" VerticalAlignment="Center" Margin="0,0,8,0"/>
+            <TextBox x:Name="ProductSearch" Width="185" Padding="5,3"
+                     Margin="0,0,12,0" ToolTip="Поиск по названию и описанию"/>
+            <ComboBox x:Name="CategoryFilter" Width="170" Margin="0,0,12,0"
+                      DisplayMemberPath="CategoryName"/>
+            <ComboBox x:Name="PriceSort" Width="170">
+                <ComboBoxItem Content="Без сортировки"/>
+                <ComboBoxItem Content="По возрастанию"/>
+                <ComboBoxItem Content="По убыванию"/>
+            </ComboBox>
+        </WrapPanel>
+
+        <ScrollViewer Grid.Row="2"
                       VerticalScrollBarVisibility="Auto">
             <ItemsControl x:Name="ShoesList" Margin="24">
                 <ItemsControl.ItemTemplate>
@@ -104,12 +95,14 @@
                                                TextWrapping="Wrap"/>
                                 </StackPanel>
 
-                                <TextBlock Grid.Column="2"
-                                           Text="{Binding PriceText}"
-                                           FontSize="21"
-                                           FontWeight="SemiBold"
-                                           VerticalAlignment="Center"
-                                           HorizontalAlignment="Center"/>
+                                <StackPanel Grid.Column="2" VerticalAlignment="Center"
+                                            HorizontalAlignment="Center">
+                                    <TextBlock Text="{Binding PriceText}" FontSize="21"
+                                               FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                                    <Button Content="Выбрать" Padding="12,4" Margin="0,6,0,0"
+                                            Visibility="{Binding ProductActions}"
+                                            Tag="{Binding ProductId}" Click="ProductCard_Click"/>
+                                </StackPanel>
                             </Grid>
                         </Border>
                     </DataTemplate>
@@ -117,10 +110,12 @@
             </ItemsControl>
         </ScrollViewer>
 
-        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="24,0,24,16">
-            <Button Content="Выйти" Padding="16,6" Click="Exit_Click"/>
+        <DockPanel Grid.Row="3" Margin="24,0,24,16" LastChildFill="False">
             <Button x:Name="CartButton" Content="Корзина" Padding="16,6"
-                    Margin="12,0,0,0" Visibility="Collapsed" Click="Cart_Click"/>
-        </StackPanel>
+                    DockPanel.Dock="Right" Visibility="Collapsed" Click="Cart_Click"/>
+            <Button x:Name="ExitButton" Content="Выйти" Padding="16,6" Click="Exit_Click"/>
+            <Button x:Name="OrdersButton" Content="Заказы" Padding="16,6"
+                    Margin="12,0,0,0" Visibility="Collapsed" Click="Orders_Click"/>
+        </DockPanel>
     </Grid>
 </Window>

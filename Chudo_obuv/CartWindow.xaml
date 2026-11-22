@@ -5,7 +5,11 @@
         MinHeight="330" MinWidth="660" WindowStartupLocation="CenterOwner">
     <DockPanel>
         <Border DockPanel.Dock="Top" Background="#D2F6E7" Padding="20,12">
-            <TextBlock Text="Корзина" FontSize="25" FontWeight="Bold"/>
+            <StackPanel>
+                <TextBlock Text="Корзина" FontSize="25" FontWeight="Bold"/>
+                <TextBlock x:Name="CartClientText" FontSize="16" TextWrapping="Wrap"
+                           Margin="0,4,0,0" Visibility="Collapsed"/>
+            </StackPanel>
         </Border>
 
         <StackPanel DockPanel.Dock="Bottom" Margin="20,0,20,20">

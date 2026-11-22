@@ -13,11 +13,18 @@ public partial class CartWindow : Window
     private readonly int _userId;
     private readonly List<CartItem> _items;
 
-    internal CartWindow(int userId, List<CartItem> items)
+    internal int? SavedOrderId { get; private set; }
+
+    internal CartWindow(int userId, List<CartItem> items, string clientLabel = null)
     {
         InitializeComponent();
         _userId = userId;
         _items = items;
+        if (!string.IsNullOrWhiteSpace(clientLabel))
+        {
+            CartClientText.Text = clientLabel;
+            CartClientText.Visibility = Visibility.Visible;
+        }
         UpdateCart();
     }
 
@@ -80,6 +87,7 @@ public partial class CartWindow : Window
         }
 
         _items.Clear();
+        SavedOrderId = orderId;
         MessageBox.Show(this, $"Заказ №{orderId} оформлен.", "Заказ");
         DialogResult = true;
     }
